@@ -1,0 +1,85 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+// Pin sensor ultrasonik
+const int trigPin = 25;
+const int echoPin = 26;
+
+// Pin buzzer dan LED
+const int buzzerPin = 13;
+const int ledPin = 14; // Pastikan LED terhubung ke pin ini
+
+// WiFi credentials
+const char* ssid = "VeKa Residence Lt 3";
+const char* password = "1234567890";
+
+// URL PHP lokal (ganti sesuai IP server-mu)
+const char* serverURL = "http://192.168.2.125/sensor/insert.php";
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(buzzerPin, OUTPUT);
+  pinMode(ledPin, OUTPUT);
+
+ // Hubungkan ke WiFi
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi...");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Hardware test started (Ultrasonic + Buzzer + LED)...");
+}
+
+void loop() {
+  float distance = readDistance();
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  if (distance <= 8.0 && distance > 0) {
+    tone(buzzerPin, 2000);    // Bunyikan buzzer
+    digitalWrite(ledPin, HIGH); // Nyalakan LED
+  } else {
+    noTone(buzzerPin);         // Matikan buzzer
+    digitalWrite(ledPin, LOW); // Matikan LED
+  }
+
+// Kirim data ke server
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    String url = String(serverURL) + "?distance=" + String(distance, 2);
+    
+    http.begin(url); // kirim ke insert.php
+    int httpResponseCode = http.GET();
+
+    Serial.print("Distance: ");
+    Serial.print(distance);
+    Serial.print(" cm | HTTP Response code: ");
+    Serial.println(httpResponseCode);
+
+    http.end(); // tutup koneksi
+  } else {
+    Serial.println("WiFi not connected");
+  }
+
+  delay(1000);
+}
+
+float readDistance() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH, 30000); // timeout 30ms
+  if (duration == 0) return -1; // Tidak ada pantulan
+
+  float distance = duration * 0.0343 / 2.0;
+  return distance;
+}

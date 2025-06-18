@@ -1,0 +1,49 @@
+// Pin sensor ultrasonik
+const int trigPin = 25;
+const int echoPin = 26;
+
+// Pin buzzer dan LED
+const int buzzerPin = 13;
+const int ledPin = 14; // Pastikan LED terhubung ke pin ini
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(buzzerPin, OUTPUT);
+  pinMode(ledPin, OUTPUT);
+
+  Serial.println("Hardware test started (Ultrasonic + Buzzer + LED)...");
+}
+
+void loop() {
+  float distance = readDistance();
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  if (distance <= 8.0 && distance > 0) {
+    tone(buzzerPin, 2000);    // Bunyikan buzzer
+    digitalWrite(ledPin, HIGH); // Nyalakan LED
+  } else {
+    noTone(buzzerPin);         // Matikan buzzer
+    digitalWrite(ledPin, LOW); // Matikan LED
+  }
+
+  delay(1000);
+}
+
+float readDistance() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH, 30000); // timeout 30ms
+  if (duration == 0) return -1; // Tidak ada pantulan
+
+  float distance = duration * 0.0343 / 2.0;
+  return distance;
+}
